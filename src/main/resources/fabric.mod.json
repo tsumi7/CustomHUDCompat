@@ -1,0 +1,32 @@
+{
+	"schemaVersion": 1,
+	"id": "customhud_compat",
+	"version": "${version}",
+	"name": "CustomHUD Mod Compatibility Layer",
+	"description": "Loads extra variables for CustomHUD based on external mod availability",
+	"authors": [
+		"Public Domain"
+	],
+	"contact": {
+		"homepage": "https://github.com/tsumi666/customhud_compat",
+		"sources":  "https://github.com/tsumi666/customhud_compat"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/customhud_compat/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"we.love.casting.spells.CustomHUDCompat.Loader"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.14.22",
+		"minecraft": "~1.20.2",
+		"java": ">=17",
+		"fabric-api": "*",
+		"customhud": ">=3.0.0"
+	},
+	"suggests": {
+		"tweakeroo": "*"
+	}
+}

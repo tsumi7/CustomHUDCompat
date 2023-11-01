@@ -1,4 +1,7 @@
-package we.love.casting.spells.CustomHUDCompat;
+package we.love.casting.spells.CustomHUD;
+
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 
 import com.minenash.customhud.HudElements.HudElement;
 import com.minenash.customhud.mod_compat.CustomHudRegistry;
@@ -7,12 +10,9 @@ import fi.dy.masa.malilib.config.IConfigBoolean;
 import fi.dy.masa.malilib.config.IHotkeyTogglable;
 import fi.dy.masa.tweakeroo.config.FeatureToggle;
 
-public class TweakerooCompat {
-    private TweakerooCompat() {
-        throw new UnsupportedOperationException("should not be instantiated");
-    }
-
-	public static void load() {
+public class TweakerooCompat implements ModInitializer {
+	@Override
+	public void onInitialize() {
 		CustomHudRegistry.registerElement("tweakeroo", (str) -> {
 			int index = str.indexOf(':');
 			if (index == -1)

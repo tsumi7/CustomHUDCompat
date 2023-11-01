@@ -42,7 +42,7 @@ configurations {
 
 	// Individual mod configurations
 	tweakerooCompat.extendsFrom sharedMalilib
-	// litematicaCompat.extendsFrom sharedMalilib
+	litematicaCompat.extendsFrom sharedMalilib
 }
 
 dependencies {
@@ -65,7 +65,7 @@ dependencies {
 
 ext.compatLayers = [
 	'Tweakeroo' : 'TweakerooCompat',
-	// 'Litematica' : 'LitematicaCompat',
+	'Litematica' : 'LitematicaCompat',
 ]
 
 compatLayers.each { name, className ->

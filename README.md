@@ -2,14 +2,17 @@
 
 ## Tweakeroo
 
-Use the tweak in-game (capitalization is important) or [enum](https://github.com/maruohon/tweakeroo/blob/pre-rewrite/fabric/1.20.x/src/main/java/fi/dy/masa/tweakeroo/config/FeatureToggle.java#L21) name prefixed with `tweakeroo:`.
+```
+==Section:TopRight==
+{{tweakeroo:tweakFlySpeed,"Fly Speed"}}
+```
 
-Example configuration usage:
+## Litematica
 
 ```
 ==Section:TopRight==
-{{tweakeroo:flySpeed,"Fly Speed"}}
-{{tweakeroo:TWEAK_FLY_SPEED,"Fly Speed"}}
+{{litematica:easyPlaceMode,"Litematica Easy Place"}}
+{{litematica:easyPlaceVanillaReach,"Vanilla Reach","Litematica Reach"}}
 ```
 
 ## License
@@ -20,3 +23,4 @@ This is available under the CC0 license.
 
 - https://github.com/Minenash/CustomHUD
 - https://github.com/maruohon/tweakeroo
+- https://github.com/maruohon/litematica

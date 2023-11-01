@@ -19,9 +19,15 @@ public class TweakerooCompat implements ModInitializer {
 				return null;
 
 			String featureStr = str.substring(index + 1);
-			// Support {tweakeroo:flySpeed} as a shortened version of {tweakeroo:TWEAK_FLY_SPEED}.
-			if (featureStr != featureStr.toUpperCase())
-				featureStr = "TWEAK_" + featureStr.replaceAll("([a-z])([A-Z]+)", "$1_$2").toUpperCase();
+			if (featureStr != featureStr.toUpperCase()) {
+				featureStr = featureStr.replaceAll("([a-z])([A-Z]+)", "$1_$2").toUpperCase();
+				// Support {tweakeroo:flySpeed} as a shortened version of {tweakeroo:TWEAK_FLY_SPEED}
+				// but don't advertise it, might remove later if we need to support displaying the
+				// other options too (not only toggles).
+				if (!featureStr.startsWith("TWEAK_")) {
+					featureStr = "TWEAK_" + featureStr;
+				}
+			}
 
 			try {
 				FeatureToggle feature = FeatureToggle.valueOf(featureStr);

@@ -1,28 +1,22 @@
 package we.love.casting.spells.CustomHUD;
 
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.loader.api.FabricLoader;
-
+import fi.dy.masa.malilib.config.IConfigBase;
+import fi.dy.masa.tweakeroo.config.Hotkeys;
+import net.fabricmc.api.ClientModInitializer;
 import com.minenash.customhud.mod_compat.CustomHudRegistry;
-import com.minenash.customhud.HudElements.supplier.BooleanSupplierElement;
-
-import fi.dy.masa.malilib.config.IConfigBoolean;
-import fi.dy.masa.malilib.config.IHotkeyTogglable;
 import fi.dy.masa.tweakeroo.config.FeatureToggle;
+import java.util.List;
+import static fi.dy.masa.tweakeroo.config.Configs.*;
 
-public class TweakerooCompat implements ModInitializer {
+public class TweakerooCompat implements ClientModInitializer {
+
+	private static final List<List<? extends IConfigBase>> CONFIG_CATS =
+			List.of(FeatureToggle.VALUES, Disable.OPTIONS, Generic.OPTIONS, Fixes.OPTIONS, Internal.OPTIONS, Hotkeys.HOTKEY_LIST);
+
 	@Override
-	public void onInitialize() {
+	public void onInitializeClient() {
 		CustomHudRegistry.registerElement("tweakeroo", (str) -> {
-			int index = str.indexOf(':');
-			if (index == -1)
-				return null;
-
-			String featureStr = str.substring(index + 1).toUpperCase();
-			try {
-				FeatureToggle feature = FeatureToggle.valueOf(featureStr);
-				return new BooleanSupplierElement(() -> feature.getBooleanValue());
-			} catch (IllegalArgumentException ignored) { return null; }
+			return MalilibUtils.getOptionElement(CONFIG_CATS, str);
 		});
 	}
 }

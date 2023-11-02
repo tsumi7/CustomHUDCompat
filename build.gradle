@@ -33,7 +33,9 @@ loom {
 			sourceSet sourceSets.client
 		}
 	}
-
+	runs {
+		remove server
+	}
 }
 
 configurations {
@@ -53,14 +55,17 @@ dependencies {
 	// Dependencies common to all
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}+${project.minecraft_version}"
-	modImplementation "maven.modrinth:customhud:${project.customhud_version}+${minecraft_version}"
+	modImplementation "maven.modrinth:customhud:${project.customhud_version}+${project.minecraft_version}"
 
 	// Dependencies common to Litematica and Tweakeroo
 	sharedMalilib "curse.maven:malilib-303119:${project.malilib_version}"
+	// modImplementation "curse.maven:malilib-303119:${project.malilib_version}"
 
 	// Compat-specific dependencies
 	tweakerooCompat "curse.maven:tweakeroo-297344:${project.tweakeroo_version}"
 	litematicaCompat "curse.maven:litematica-308892:${project.litematica_version}"
+	// modImplementation "curse.maven:tweakeroo-297344:${project.tweakeroo_version}"
+	// modImplementation "curse.maven:litematica-308892:${project.litematica_version}"
 }
 
 def fabricModInfoJson(ArrayList<CompatLayer> layers) {
@@ -98,7 +103,7 @@ def fabricModInfoJson(ArrayList<CompatLayer> layers) {
 		icon: "assets/customhud_compat/icon.png",
 		environment: "*",
 		entrypoints: [
-			main: [
+			client: [
 				"we.love.casting.spells.CustomHUD.${loader}"
 			]
 		],
@@ -127,15 +132,15 @@ class CompatLayer {
 }
 
 ext.layers = [
-	new CompatLayer(name: "Tweakeroo", dir: "TweakerooCompat", extra: [], modid: "tweakeroo"),
-	new CompatLayer(name: "Litematica", dir: "LitematicaCompat", extra: [ "CompatUtils" ], modid: "litematica")
+	new CompatLayer(name: "Tweakeroo", dir: "TweakerooCompat", extra: [ "MalilibUtils" ], modid: "tweakeroo"),
+	new CompatLayer(name: "Litematica", dir: "LitematicaCompat", extra: [ "MalilibUtils" ], modid: "litematica")
 ]
 
 ext.layers.each { layer ->
 	def configName = layer.dir[0].toLowerCase() + layer.dir[1..-1]
 	tasks.create(name: "generate${layer.dir}Json", type: DefaultTask) {
 		dependsOn processResources
-		def outputJsonFile = file("build/main/resources/fabric-${layer.modid}.mod.json")
+		def outputJsonFile = file("build/client/resources/fabric-${layer.modid}.mod.json")
 		def outputJson = fabricModInfoJson([layer])
 		outputs.file outputJsonFile
 
@@ -150,28 +155,28 @@ ext.layers.each { layer ->
 
 		if (configurations.findByName(configName)) {
 			from configurations."${configName}"
-			compileJava {
+			compileClientJava {
 				doFirst {
-					sourceSets.main.java.srcDirs += "build/generated/sources/main/java/main/we/love/casting/spells/CustomHUD/${layer.dir}"
+					sourceSets.client.java.srcDirs += "build/generated/sources/client/java/main/we/love/casting/spells/CustomHUD/${layer.dir}"
 					classpath += configurations."${configName}"
 				}
 			}
 		}
 
 		def fabricModJson = "fabric-${layer.modid}.mod.json"
-		from ("build/main/resources/") {
+		from ("build/client/resources/") {
 			include fabricModJson
 			into "/"
 			rename { String fileName -> fileName.replace(fabricModJson, "fabric.mod.json") }
 		}
 
-		from ("src/main/resources/") {
+		from ("src/client/resources/") {
 			include "assets/customhud_compat/icon.png"
 		}
 
 		def basePath = "we/love/casting/spells/CustomHUD/"
 		def classes = [ "${layer.dir}/Loader", "${layer.dir}/Layer" ] + layer.extra
-		from (sourceSets.main.output) {
+		from (sourceSets.client.output) {
 		    classes.each { name ->
 		        include "${basePath}/${name}.class"
 		        include "${basePath}/${name}\$*.class"
@@ -182,10 +187,10 @@ ext.layers.each { layer ->
 	build.dependsOn "${configName}Jar"
 }
 
-tasks.create(name: 'generateLoaderSources') {
+tasks.create(name: 'generateLoaders') {
     doLast {
         def packageName = "we.love.casting.spells.CustomHUD"
-		def baseDir = "build/generated/sources/main/java/main/${packageName.replace('.', '/')}"
+		def baseDir = "build/generated/sources/client/java/main/${packageName.replace('.', '/')}"
         layers.each { layer ->
             def sourceFile = file("${baseDir}/${layer.dir}/Loader.java")
 
@@ -193,11 +198,11 @@ tasks.create(name: 'generateLoaderSources') {
             sourceFile.text = """
                 package ${packageName}.${layer.dir};
 
-                import net.fabricmc.api.ModInitializer;
+                import net.fabricmc.api.ClientModInitializer;
 
-                public class Loader implements ModInitializer {
+                public class Loader implements ClientModInitializer {
                     @Override
-	                public void onInitialize() {
+	                public void onInitializeClient() {
                         Layer.Load();
                     }
                 }
@@ -211,12 +216,12 @@ tasks.create(name: 'generateLoaderSources') {
         sourceFile.text = """
 			package ${packageName};
 
-			import net.fabricmc.api.ModInitializer;
+			import net.fabricmc.api.ClientModInitializer;
 			import net.fabricmc.loader.api.FabricLoader;
 
-			public class Loader implements ModInitializer {
+			public class Loader implements ClientModInitializer {
 				@Override
-				public void onInitialize() {
+				public void onInitializeClient() {
 			        ${layers.collect { layer ->
 			            "if (has(\"${layer.modid}\")) we.love.casting.spells.CustomHUD.${layer.dir}.Layer.Load();"
 			        }.join('\n\t')}
@@ -229,12 +234,24 @@ tasks.create(name: 'generateLoaderSources') {
         """
     }
 }
-sourceSets.main.java.srcDirs += "build/generated/sources/main/java/main/we/love/casting/spells/CustomHUD/Main"
-compileJava.dependsOn generateLoaderSources
+
+tasks.register('setupGeneratedSources') {
+	dependsOn generateLoaders
+    doLast {
+        layers.each { layer ->
+            sourceSets.client.java.srcDirs += "build/generated/sources/client/java/main/we/love/casting/spells/CustomHUD/${layer.dir}"
+        }
+		sourceSets.client.java.srcDirs += "build/generated/sources/client/java/main/we/love/casting/spells/CustomHUD/Main"
+    }
+}
+
+tasks.named('compileClientJava') {
+    dependsOn 'setupGeneratedSources'
+}
 
 tasks.create(name: "generateModInfoJson", type: DefaultTask) {
 	doLast {
-		def output = file("build/main/resources/fabric.mod.json")
+		def output = file("build/client/resources/fabric.mod.json")
 		mkdir output.parentFile
 		output.text = new groovy.json.JsonBuilder(fabricModInfoJson(layers)).toPrettyString()
 	}
@@ -259,7 +276,7 @@ jar {
 	layers.each { layer ->
 		exclude "we/love/casting/spells/CustomHUD/${layer.dir}/Loader*"
 	}
-	from("build/main/resources/fabric.mod.json")
+	from("build/client/resources/fabric.mod.json")
 	from("LICENSE")
 }
 

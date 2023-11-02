@@ -1,6 +1,7 @@
 package we.love.casting.spells.CustomHUD.TweakerooCompat;
 
 import java.util.List;
+import we.love.casting.spells.CustomHUD.MalilibUtils;
 import com.minenash.customhud.mod_compat.CustomHudRegistry;
 import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.tweakeroo.config.Hotkeys;

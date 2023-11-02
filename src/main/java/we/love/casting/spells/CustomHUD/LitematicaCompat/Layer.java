@@ -1,4 +1,4 @@
-package we.love.casting.spells.CustomHUD;
+package we.love.casting.spells.CustomHUD.LitematicaCompat;
 
 import java.util.List;
 
@@ -8,14 +8,13 @@ import com.minenash.customhud.mod_compat.CustomHudRegistry;
 import fi.dy.masa.malilib.config.IConfigBase;
 import static fi.dy.masa.litematica.config.Configs.*;
 
-public class LitematicaCompat implements ClientModInitializer {
-
+public class Layer {
+	public static void Load() {
 	private static final List<List<? extends IConfigBase>> CONFIG_CATS =
 			List.of(Generic.OPTIONS, Colors.OPTIONS, Visuals.OPTIONS, InfoOverlays.OPTIONS, Hotkeys.HOTKEY_LIST);
 
 	@Override
 	public void onInitializeClient() {
         CustomHudRegistry.registerElement("litematica", (str) -> MalilibUtils.getOptionElement(CONFIG_CATS, str));
-
 	}
 }

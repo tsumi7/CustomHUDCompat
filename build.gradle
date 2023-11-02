@@ -52,8 +52,8 @@ dependencies {
 
 	// Dependencies common to all
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	modImplementation "maven.modrinth:customhud:${project.customhud_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}+${project.minecraft_version}"
+	modImplementation "maven.modrinth:customhud:${project.customhud_version}+${minecraft_version}"
 
 	// Dependencies common to Litematica and Tweakeroo
 	sharedMalilib "curse.maven:malilib-303119:${project.malilib_version}"
@@ -63,82 +63,122 @@ dependencies {
 	litematicaCompat "curse.maven:litematica-308892:${project.litematica_version}"
 }
 
-ext.compatLayers = [
-	'Tweakeroo' : 'TweakerooCompat',
-	'Litematica' : 'LitematicaCompat',
+def fabricModInfoJson(ArrayList<CompatLayer> layers) {
+	def modid
+	def name
+	def description
+	def loader
+
+	if (layers.size() > 1) {
+		modid = "compat"
+		name = "Mod"
+		description = "Loads extra variables for CustomHUD from supported mods"
+		loader = "Loader"
+	} else {
+		modid = layers[0].modid
+		name = layers[0].name
+		description = "Loads extra variables for CustomHUD from the ${layers[0].name} mod"
+		loader = "${layers[0].dir}.Loader"
+	}
+
+	Map info = [
+		schemaVersion: 1,
+		id: "customhud_${modid}",
+		version: "${version}",
+		name: "CustomHUD (${name} Compatibility)",
+		description: description,
+		authors: [
+			"Public Domain"
+		],
+		contact: [
+			homepage: "https://github.com/tsumi666/customhudcompat",
+			sources: "https://github.com/tsumi666/customhudcompat"
+		],
+		license: "CC0-1.0",
+		icon: "assets/customhud_compat/icon.png",
+		environment: "*",
+		entrypoints: [
+			main: [
+				"we.love.casting.spells.CustomHUD.${loader}"
+			]
+		],
+		depends: [
+			java: ">=17",
+			minecraft: "~${project.minecraft_version}",
+			"fabric-api": "*",
+			fabricloader: ">=${project.loader_version}",
+			"custom_hud": ">=${project.tweakeroo_version}",
+		],
+		suggests: []
+	]
+
+	if (layers.size() > 1) {
+		layers.each { layer ->
+			info.suggests += [ "${layer.modid}": "*" ]
+		}
+	} else {
+		info.depends += [ "${layers[0].modid}": "*" ]
+	}
+
+	return info
+}
+
+class CompatLayer {
+	String name // fancy name
+	String dir  // layer directory
+	String[] extra // extra classes to include
+	String modid // layer's modid
+}
+
+ext.layers = [
+	new CompatLayer(name: "Tweakeroo", dir: "TweakerooCompat", extra: [], modid: "tweakeroo"),
+	new CompatLayer(name: "Litematica", dir: "LitematicaCompat", extra: [ "CompatUtils" ], modid: "litematica")
 ]
 
-compatLayers.each { name, className ->
-	def configName = className[0].toLowerCase() + className[1..-1]
-	tasks.create(name: "generate${className}Json", type: DefaultTask) {
+ext.layers.each { layer ->
+	def configName = layer.dir[0].toLowerCase() + layer.dir[1..-1]
+	tasks.create(name: "generate${layer.dir}Json", type: DefaultTask) {
 		dependsOn processResources
-		def outputJsonFile = file("build/main/resources/fabric-${className.toLowerCase()}.mod.json")
+		def outputJsonFile = file("build/main/resources/fabric-${layer.modid}.mod.json")
+		def outputJson = fabricModInfoJson([layer])
 		outputs.file outputJsonFile
 
 		doLast {
-			def jsonContent = [
-				schemaVersion: 1,
-				id: "customhud_${className.toLowerCase()}",
-				version: "${version}",
-				name: "CustomHUD (${name} Compatibility)",
-				description: "Loads extra variables for CustomHUD from the ${name} mod",
-				authors: [
-					"Public Domain"
-				],
-				contact: [
-					homepage: "https://github.com/tsumi666/customhudcompat",
-					sources: "https://github.com/tsumi666/customhudcompat"
-				],
-				license: "CC0-1.0",
-				icon: "assets/customhud_compat/icon.png",
-				environment: "*",
-				entrypoints: [
-					main: [
-						"we.love.casting.spells.CustomHUD.${className}"
-					]
-				],
-				depends: [
-					fabricloader: ">=0.14.22",
-					minecraft: "~${project.minecraft_version}",
-					java: ">=17",
-					"fabric-api": "*",
-					"custom_hud": ">=3.3.0"
-				],
-				suggests: [
-					"${className.toLowerCase().substring(0, className.length() - 6)}": "*" // HACK: we might have to get the other modids differently later.
-				]
-			]
-			outputJsonFile.text = new groovy.json.JsonBuilder(jsonContent).toPrettyString()
+			outputJsonFile.text = new groovy.json.JsonBuilder(outputJson).toPrettyString()
 		}
 	}
+
 	tasks.create(name: "${configName}Jar", type: Jar) {
-		dependsOn "generate${className}Json"
-		archiveBaseName = "CustomHUD+${name}"
+		dependsOn "generate${layer.dir}Json"
+		archiveBaseName = "CustomHUD+${layer.dir}"
 
 		if (configurations.findByName(configName)) {
 			from configurations."${configName}"
-				compileJava {
-					doFirst {
-						classpath += configurations."${configName}"
+			compileJava {
+				doFirst {
+					classpath += configurations."${configName}"
 				}
 			}
 		}
 
+		def fabricModJson = "fabric-${layer.modid}.mod.json"
 		from ("build/main/resources/") {
-			include "fabric-${className.toLowerCase()}.mod.json"
+			include fabricModJson
 			into "/"
-			rename { String fileName -> fileName.replace("fabric-${className.toLowerCase()}.mod.json", "fabric.mod.json") }
+			rename { String fileName -> fileName.replace(fabricModJson, "fabric.mod.json") }
 		}
 
 		from ("src/main/resources/") {
 			include "assets/customhud_compat/icon.png"
 		}
 
+		def basePath = "we/love/casting/spells/CustomHUD/"
+		def classes = [ "${layer.dir}/Loader", "${layer.dir}/Layer"] + layer.extra
 		from (sourceSets.main.output) {
-			include "we/love/casting/spells/CustomHUD/${className}.class"
-			include "we/love/casting/spells/CustomHUD/${className}\$*.class"
-			if (className == "LitematicaCompat")
-				include "we/love/casting/spells/CustomHUD/CompatUtils*.class"
+		    classes.each { name ->
+		        include "${basePath}/${name}.class"
+		        include "${basePath}/${name}\$*.class"
+		    }
 		}
 	}
 	build.dependsOn "${configName}Jar"

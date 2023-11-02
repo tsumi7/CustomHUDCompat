@@ -1,68 +1,67 @@
 package we.love.casting.spells.CustomHUD;
 
-import java.util.Optional;
-import we.love.casting.spells.CustomHUD.CompatUtils;
+import java.util.List;
 
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.loader.api.FabricLoader;
+import com.minenash.customhud.HudElements.supplier.BooleanSupplierElement;
+import com.minenash.customhud.HudElements.supplier.NumberSupplierElement;
+import com.minenash.customhud.HudElements.supplier.SpecialSupplierElement;
+import com.minenash.customhud.HudElements.supplier.StringSupplierElement;
+import fi.dy.masa.malilib.config.options.*;
+import fi.dy.masa.malilib.util.Color4f;
+import net.fabricmc.api.ClientModInitializer;
 
-import com.minenash.customhud.HudElements.HudElement;
 import com.minenash.customhud.mod_compat.CustomHudRegistry;
 
 import fi.dy.masa.malilib.config.IConfigBase;
-import fi.dy.masa.malilib.config.options.ConfigBase;
-import fi.dy.masa.malilib.config.options.ConfigBoolean;
-import fi.dy.masa.malilib.config.options.ConfigDouble;
-import fi.dy.masa.malilib.config.options.ConfigInteger;
-import fi.dy.masa.malilib.config.options.ConfigString;
-import fi.dy.masa.litematica.config.Configs;
 
-public class LitematicaCompat implements ModInitializer {
+import static fi.dy.masa.litematica.config.Configs.*;
+
+public class LitematicaCompat implements ClientModInitializer {
+
+	private static final List<List<IConfigBase>> CONFIG_CATS = List.of(Generic.OPTIONS, Colors.OPTIONS, Visuals.OPTIONS, InfoOverlays.OPTIONS);
+
 	@Override
-	public void onInitialize() {
-		CustomHudRegistry.registerElement("litematica", (str) -> {
-			int index = str.indexOf(':');
-			if (index == -1)
-				return null;
+	public void onInitializeClient() {
+        CustomHudRegistry.registerElement("litematica", (str) -> {
+        	int index = str.indexOf(':');
+        	if (index == -1)
+        		return null;
 
-			final String featureStrCheck = CompatUtils.toCamelCase(str.substring(index + 1).toLowerCase());
-			try {
-				Optional<? extends IConfigBase> optional = Configs.Generic.OPTIONS.stream()
-		            .filter(element -> element.getName().equals(featureStrCheck))
-		            .findFirst();
+			String configName = str.substring(index + 1).replace("_", "");
+			IConfigBase config = null;
 
-				if (!optional.isPresent())
-					return null;
-
-				return new HudElement() {
-					@Override
-					public String getString() { 
-						if (optional.get() instanceof ConfigString) {
-							return ((ConfigString) optional.get()).getStringValue();
-						}
-						return null;
+			outer:
+			for (var list : CONFIG_CATS) {
+				for (IConfigBase c : list) {
+					if (c.getName().equalsIgnoreCase(configName)) {
+						config = c;
+						break outer;
 					}
+				}
+			}
 
-					@Override
-					public Number getNumber() {
-						if (optional.get() instanceof ConfigInteger) {
-							return ((ConfigInteger) optional.get()).getIntegerValue();
-						}
-						if (optional.get() instanceof ConfigDouble) {
-							return ((ConfigDouble) optional.get()).getDoubleValue();
-						}
-						return null;
-					}
+        	if (config == null)
+        		return null;
 
-					@Override
-					public boolean getBoolean() {
-						if (optional.get() instanceof ConfigBoolean) {
-							return ((ConfigBoolean) optional.get()).getBooleanValue();
-						}
-						return false;
-					}
-				};
-			} catch (IllegalArgumentException ignored) { return null; }
-		});
+        	if (config instanceof ConfigString cs)
+        		return new StringSupplierElement(cs::getStringValue);
+			if (config instanceof ConfigOptionList col)
+				return new StringSupplierElement(col::getStringValue);
+        	if (config instanceof ConfigColor cc)
+        		return new SpecialSupplierElement( SpecialSupplierElement.of(
+        				cc::getStringValue,
+        				cc::getIntegerValue,
+        				() -> cc.getColor() != Color4f.ZERO
+        		));
+        	if (config instanceof ConfigInteger ci)
+        		return new NumberSupplierElement(ci::getIntegerValue, 1, 0);
+        	if (config instanceof ConfigDouble cd)
+        		return new NumberSupplierElement(cd::getDoubleValue, 1, 1);
+        	if (config instanceof ConfigBoolean cb)
+        		return new BooleanSupplierElement(cb::getBooleanValue);
+        	if (config instanceof ConfigHotkey ch)
+        		return new StringSupplierElement(ch::getStringValue);
+        	return null;
+        });
 	}
 }

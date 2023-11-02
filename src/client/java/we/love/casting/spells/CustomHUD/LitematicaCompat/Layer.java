@@ -20,7 +20,4 @@ public class Layer implements ClientModInitializer {
 		CustomHudRegistry.registerElement("litematica", (str) -> MalilibUtils.getOptionElement(CONFIG_CATS, str));
 	}
 
-	public static void onCli() {
-
-	}
 }

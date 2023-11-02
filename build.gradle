@@ -1,6 +1,6 @@
 plugins {
-	id 'fabric-loom' version '1.4-SNAPSHOT'
-	id 'maven-publish'
+	id "fabric-loom" version "1.4-SNAPSHOT"
+	id "maven-publish"
 }
 
 version = project.mod_version
@@ -77,7 +77,7 @@ def fabricModInfoJson(ArrayList<CompatLayer> layers) {
 	if (layers.size() > 1) {
 		modid = "compat"
 		name = "Mod"
-		description = "Loads extra variables for CustomHUD from supported mods"
+		description = "Loads extra variables for CustomHUD from supported mods: ${layers.collect({ layer -> layer.name }).join(", ")}"
 		loader = "Loader"
 	} else {
 		modid = layers[0].modid
@@ -128,7 +128,7 @@ class CompatLayer {
 	String name // fancy name
 	String dir  // layer directory
 	String[] extra // extra classes to include
-	String modid // layer's modid
+	String modid // layer"s modid
 }
 
 ext.layers = [
@@ -187,10 +187,10 @@ ext.layers.each { layer ->
 	build.dependsOn "${configName}Jar"
 }
 
-tasks.create(name: 'generateLoaders') {
+tasks.create(name: "generateLoaders") {
     doLast {
         def packageName = "we.love.casting.spells.CustomHUD"
-		def baseDir = "build/generated/sources/client/java/main/${packageName.replace('.', '/')}"
+		def baseDir = "build/generated/sources/client/java/main/${packageName.replace(".", "/")}"
         layers.each { layer ->
             def sourceFile = file("${baseDir}/${layer.dir}/Loader.java")
 
@@ -224,7 +224,7 @@ tasks.create(name: 'generateLoaders') {
 				public void onInitializeClient() {
 			        ${layers.collect { layer ->
 			            "if (has(\"${layer.modid}\")) we.love.casting.spells.CustomHUD.${layer.dir}.Layer.Load();"
-			        }.join('\n\t')}
+			        }.join("\n\t")}
 				}
 
 				private static boolean has(String modid) {
@@ -235,7 +235,7 @@ tasks.create(name: 'generateLoaders') {
     }
 }
 
-tasks.register('setupGeneratedSources') {
+tasks.register("setupGeneratedSources") {
 	dependsOn generateLoaders
     doLast {
         layers.each { layer ->
@@ -245,8 +245,8 @@ tasks.register('setupGeneratedSources') {
     }
 }
 
-tasks.named('compileClientJava') {
-    dependsOn 'setupGeneratedSources'
+tasks.named("compileClientJava") {
+    dependsOn "setupGeneratedSources"
 }
 
 tasks.create(name: "generateModInfoJson", type: DefaultTask) {

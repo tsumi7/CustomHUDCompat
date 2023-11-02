@@ -107,16 +107,12 @@ def fabricModInfoJson(ArrayList<CompatLayer> layers) {
 			minecraft: "~${project.minecraft_version}",
 			"fabric-api": "*",
 			fabricloader: ">=${project.loader_version}",
-			"custom_hud": ">=${project.tweakeroo_version}",
+			"custom_hud": ">=${project.customhud_version}",
 		],
-		suggests: []
+		suggests: layers.size > 1 ? layers.collectEntries { layer -> [ "${layer.modid}": "*" ] } : [:]
 	]
 
-	if (layers.size() > 1) {
-		layers.each { layer ->
-			info.suggests += [ "${layer.modid}": "*" ]
-		}
-	} else {
+	if (layers.size() == 1) {
 		info.depends += [ "${layers[0].modid}": "*" ]
 	}
 
@@ -156,6 +152,7 @@ ext.layers.each { layer ->
 			from configurations."${configName}"
 			compileJava {
 				doFirst {
+					sourceSets.main.java.srcDirs += "build/generated/sources/main/java/main/we/love/casting/spells/CustomHUD/${layer.dir}"
 					classpath += configurations."${configName}"
 				}
 			}
@@ -173,16 +170,76 @@ ext.layers.each { layer ->
 		}
 
 		def basePath = "we/love/casting/spells/CustomHUD/"
-		def classes = [ "${layer.dir}/Loader", "${layer.dir}/Layer"] + layer.extra
+		def classes = [ "${layer.dir}/Loader", "${layer.dir}/Layer" ] + layer.extra
 		from (sourceSets.main.output) {
 		    classes.each { name ->
 		        include "${basePath}/${name}.class"
 		        include "${basePath}/${name}\$*.class"
 		    }
 		}
+		from("LICENSE")
 	}
 	build.dependsOn "${configName}Jar"
 }
+
+tasks.create(name: 'generateLoaderSources') {
+    doLast {
+        def packageName = "we.love.casting.spells.CustomHUD"
+		def baseDir = "build/generated/sources/main/java/main/${packageName.replace('.', '/')}"
+        layers.each { layer ->
+            def sourceFile = file("${baseDir}/${layer.dir}/Loader.java")
+
+            mkdir sourceFile.parentFile
+            sourceFile.text = """
+                package ${packageName}.${layer.dir};
+
+                import net.fabricmc.api.ModInitializer;
+
+                public class Loader implements ModInitializer {
+                    @Override
+	                public void onInitialize() {
+                        Layer.Load();
+                    }
+                }
+            """
+        }
+
+        def sourceFile = file("${baseDir}/Main/Loader.java")
+        mkdir sourceFile.parentFile
+
+
+        sourceFile.text = """
+			package ${packageName};
+
+			import net.fabricmc.api.ModInitializer;
+			import net.fabricmc.loader.api.FabricLoader;
+
+			public class Loader implements ModInitializer {
+				@Override
+				public void onInitialize() {
+			        ${layers.collect { layer ->
+			            "if (has(\"${layer.modid}\")) we.love.casting.spells.CustomHUD.${layer.dir}.Layer.Load();"
+			        }.join('\n\t')}
+				}
+
+				private static boolean has(String modid) {
+					return FabricLoader.getInstance().isModLoaded(modid);
+				}
+			}
+        """
+    }
+}
+sourceSets.main.java.srcDirs += "build/generated/sources/main/java/main/we/love/casting/spells/CustomHUD/Main"
+compileJava.dependsOn generateLoaderSources
+
+tasks.create(name: "generateModInfoJson", type: DefaultTask) {
+	doLast {
+		def output = file("build/main/resources/fabric.mod.json")
+		mkdir output.parentFile
+		output.text = new groovy.json.JsonBuilder(fabricModInfoJson(layers)).toPrettyString()
+	}
+}
+processResources.dependsOn generateModInfoJson
 
 tasks.withType(JavaCompile).configureEach {
 	it.options.release = 17
@@ -199,14 +256,12 @@ java {
 }
 
 jar {
-	from("LICENSE") {
-		rename { "${it}_${project.base.archivesName.get()}"}
+	layers.each { layer ->
+		exclude "we/love/casting/spells/CustomHUD/${layer.dir}/Loader*"
 	}
+	from("build/main/resources/fabric.mod.json")
+	from("LICENSE")
 }
-
-jar.enabled = false
-remapJar.enabled = false
-remapSourcesJar.enabled = false
 
 // configure the maven publication
 publishing {

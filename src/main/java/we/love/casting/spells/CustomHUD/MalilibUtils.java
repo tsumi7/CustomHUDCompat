@@ -50,8 +50,6 @@ public class MalilibUtils {
             return new BooleanSupplierElement(cb::getBooleanValue);
         if (config instanceof IConfigOptionList col)
             return new StringSupplierElement(() -> col.getOptionListValue().getDisplayName());
-        if (config instanceof IConfigOptionList col)
-            return new StringSupplierElement(() -> col.getOptionListValue().getDisplayName());
         if (config instanceof IStringValue cs)
             return new StringSupplierElement(cs::getStringValue);
         return null;

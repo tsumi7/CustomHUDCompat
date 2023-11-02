@@ -1,4 +1,4 @@
-package we.love.casting.spells.CustomHUD;
+package we.love.casting.spells.CustomHUD.util;
 
 import com.google.common.collect.ImmutableList;
 import com.minenash.customhud.HudElements.HudElement;

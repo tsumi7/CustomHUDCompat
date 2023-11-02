@@ -177,7 +177,7 @@ ext.layers.each { layer ->
 		def basePath = "we/love/casting/spells/CustomHUD/"
 		def classes = [ "${layer.dir}/Loader", "${layer.dir}/Layer" ] + layer.extra
 		from (sourceSets.client.output) {
-		    classes.each { name ->
+		    classes.flatten().each { name ->
 		        include "${basePath}/${name}.class"
 		        include "${basePath}/${name}\$*.class"
 		    }

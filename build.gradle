@@ -137,6 +137,8 @@ compatLayers.each { name, className ->
 		from (sourceSets.main.output) {
 			include "we/love/casting/spells/CustomHUD/${className}.class"
 			include "we/love/casting/spells/CustomHUD/${className}\$*.class"
+			if (className == "LitematicaCompat")
+				include "we/love/casting/spells/CustomHUD/CompatUtils*.class"
 		}
 	}
 	build.dependsOn "${configName}Jar"

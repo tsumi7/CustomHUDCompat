@@ -1,6 +1,7 @@
 package we.love.casting.spells.CustomHUD;
 
 import java.util.Optional;
+import we.love.casting.spells.CustomHUD.CompatUtils;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
@@ -24,12 +25,7 @@ public class LitematicaCompat implements ModInitializer {
 			if (index == -1)
 				return null;
 
-			String featureStr = str.substring(index + 1);
-			// if (featureStr != featureStr.toUpperCase())
-			// 	featureStr = featureStr.replaceAll("([a-z])([A-Z]+)", "$1_$2").toUpperCase();
-
-			final String featureStrCheck = featureStr;
-
+			final String featureStrCheck = CompatUtils.toCamelCase(str.substring(index + 1).toLowerCase());
 			try {
 				Optional<? extends IConfigBase> optional = Configs.Generic.OPTIONS.stream()
 		            .filter(element -> element.getName().equals(featureStrCheck))

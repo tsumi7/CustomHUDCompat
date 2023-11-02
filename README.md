@@ -4,15 +4,14 @@
 
 ```
 ==Section:TopRight==
-{{tweakeroo:tweakFlySpeed,"Fly Speed"}}
+{{tweakeroo:tweak_fly_speed,"Fly Speed"}}
 ```
 
 ## Litematica
 
 ```
 ==Section:TopRight==
-{{litematica:easyPlaceMode,"Litematica Easy Place"}}
-{{litematica:easyPlaceVanillaReach,"Vanilla Reach","Litematica Reach"}}
+{{litematica:easy_place_mode & (litematica:easy_place_vanilla_reach = false),"Litematica Easy Reach"}}
 ```
 
 ## License

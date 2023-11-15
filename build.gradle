@@ -16,12 +16,8 @@ repositories {
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
-	maven {
-		url = "https://api.modrinth.com/maven"
-	}
-	maven {
-		url = "https://cursemaven.com"
-	}
+	maven { url = "https://api.modrinth.com/maven" }
+	maven { url = "https://cursemaven.com" }
 }
 
 loom {
@@ -66,24 +62,22 @@ dependencies {
 	litematicaCompat "curse.maven:litematica-308892:${project.litematica_version}"
 	// modImplementation "curse.maven:tweakeroo-297344:${project.tweakeroo_version}"
 	// modImplementation "curse.maven:litematica-308892:${project.litematica_version}"
+	// include(implementation(annotationProcessor("io.github.llamalad7:mixinextras-fabric:0.2.0")))
 }
 
 def fabricModInfoJson(ArrayList<CompatLayer> layers) {
 	def modid
 	def name
 	def description
-	def loader
 
 	if (layers.size() > 1) {
 		modid = "compat"
 		name = "Mod"
 		description = "Loads extra variables for CustomHUD from supported mods: ${layers.collect({ layer -> layer.name }).join(", ")}"
-		loader = "Loader"
 	} else {
 		modid = layers[0].modid
 		name = layers[0].name
 		description = "Loads extra variables for CustomHUD from the ${layers[0].name} mod"
-		loader = "${layers[0].dir}.Loader"
 	}
 
 	Map info = [
@@ -103,18 +97,15 @@ def fabricModInfoJson(ArrayList<CompatLayer> layers) {
 		icon: "assets/customhud_compat/icon.png",
 		environment: "*",
 		entrypoints: [
-			client: [
-				"we.love.casting.spells.CustomHUD.${loader}"
-			]
+				client: layers.collect {layer -> "we.love.casting.spells.CustomHUD." + layer.dir + ".Layer"}
 		],
 		depends: [
 			java: ">=17",
 			minecraft: "~${project.minecraft_version}",
 			"fabric-api": "*",
-			fabricloader: ">=${project.loader_version}",
-			"custom_hud": ">=${project.customhud_version}",
-		],
-		suggests: layers.size > 1 ? layers.collectEntries { layer -> [ "${layer.modid}": "*" ] } : [:]
+			fabricloader: "*",
+			"custom_hud": ">=2.0.0",
+		]
 	]
 
 	if (layers.size() == 1) {
@@ -175,11 +166,12 @@ ext.layers.each { layer ->
 		}
 
 		def basePath = "we/love/casting/spells/CustomHUD/"
-		def classes = [ "${layer.dir}/Loader", "${layer.dir}/Layer" ] + layer.extra
+		include "${basePath}/${layer.dir}/*"
+		include "${basePath}/util/CommonUtil.class"
 		from (sourceSets.client.output) {
-		    classes.flatten().each { name ->
-		        include "${basePath}/${name}.class"
-		        include "${basePath}/${name}\$*.class"
+			layer.extra.flatten().each { name ->
+		        include "${basePath}/util/${name}.class"
+		        include "${basePath}/util/${name}\$*.class"
 		    }
 		}
 		from("LICENSE")
@@ -187,61 +179,11 @@ ext.layers.each { layer ->
 	build.dependsOn "${configName}Jar"
 }
 
-tasks.create(name: "generateLoaders") {
-    doLast {
-        def packageName = "we.love.casting.spells.CustomHUD"
-		def baseDir = "build/generated/sources/client/java/main/${packageName.replace(".", "/")}"
-        layers.each { layer ->
-            def sourceFile = file("${baseDir}/${layer.dir}/Loader.java")
-
-            mkdir sourceFile.parentFile
-            sourceFile.text = """
-                package ${packageName}.${layer.dir};
-
-                import net.fabricmc.api.ClientModInitializer;
-
-                public class Loader implements ClientModInitializer {
-                    @Override
-	                public void onInitializeClient() {
-                        Layer.Load();
-                    }
-                }
-            """
-        }
-
-        def sourceFile = file("${baseDir}/Main/Loader.java")
-        mkdir sourceFile.parentFile
-
-
-        sourceFile.text = """
-			package ${packageName};
-
-			import net.fabricmc.api.ClientModInitializer;
-			import net.fabricmc.loader.api.FabricLoader;
-
-			public class Loader implements ClientModInitializer {
-				@Override
-				public void onInitializeClient() {
-			        ${layers.collect { layer ->
-			            "if (has(\"${layer.modid}\")) we.love.casting.spells.CustomHUD.${layer.dir}.Layer.Load();"
-			        }.join("\n\t")}
-				}
-
-				private static boolean has(String modid) {
-					return FabricLoader.getInstance().isModLoaded(modid);
-				}
-			}
-        """
-    }
-}
-
 tasks.register("setupGeneratedSources") {
-	dependsOn generateLoaders
     doLast {
         layers.each { layer ->
             sourceSets.client.java.srcDirs += "build/generated/sources/client/java/main/we/love/casting/spells/CustomHUD/${layer.dir}"
         }
-		sourceSets.client.java.srcDirs += "build/generated/sources/client/java/main/we/love/casting/spells/CustomHUD/Main"
     }
 }
 
@@ -251,12 +193,15 @@ tasks.named("compileClientJava") {
 
 tasks.create(name: "generateModInfoJson", type: DefaultTask) {
 	doLast {
-		def output = file("build/client/resources/fabric.mod.json")
+		def output = file("build/resources/client/fabric.mod.json")
 		mkdir output.parentFile
 		output.text = new groovy.json.JsonBuilder(fabricModInfoJson(layers)).toPrettyString()
 	}
 }
-processResources.dependsOn generateModInfoJson
+
+processResources {
+	dependsOn(generateModInfoJson)
+}
 
 tasks.withType(JavaCompile).configureEach {
 	it.options.release = 17
@@ -273,9 +218,6 @@ java {
 }
 
 jar {
-	layers.each { layer ->
-		exclude "we/love/casting/spells/CustomHUD/${layer.dir}/Loader*"
-	}
 	from("build/client/resources/fabric.mod.json")
 	from("LICENSE")
 }

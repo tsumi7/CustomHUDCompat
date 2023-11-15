@@ -1,4 +1,4 @@
-package we.love.casting.spells.CustomHUD.TweakerooCompat;
+package we.love.casting.spells.CustomHUD.Tweakeroo;
 
 import java.util.List;
 

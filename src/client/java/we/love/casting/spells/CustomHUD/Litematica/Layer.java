@@ -1,4 +1,4 @@
-package we.love.casting.spells.CustomHUD.LitematicaCompat;
+package we.love.casting.spells.CustomHUD.Litematica;
 
 import java.util.List;
 

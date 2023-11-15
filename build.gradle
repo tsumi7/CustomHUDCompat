@@ -41,6 +41,7 @@ configurations {
 	// Individual mod configurations
 	tweakerooCompat.extendsFrom sharedMalilib
 	litematicaCompat.extendsFrom sharedMalilib
+	dynamicfpsCompat.extendsFrom sharedMalilib
 }
 
 dependencies {
@@ -60,9 +61,11 @@ dependencies {
 	// Compat-specific dependencies
 	tweakerooCompat "curse.maven:tweakeroo-297344:${project.tweakeroo_version}"
 	litematicaCompat "curse.maven:litematica-308892:${project.litematica_version}"
+	dynamicfpsCompat "maven.modrinth:dynamic-fps:${project.dynamicfps_version}-${project.minecraft_version}"
 	// modImplementation "curse.maven:tweakeroo-297344:${project.tweakeroo_version}"
 	// modImplementation "curse.maven:litematica-308892:${project.litematica_version}"
 	// include(implementation(annotationProcessor("io.github.llamalad7:mixinextras-fabric:0.2.0")))
+	modImplementation "maven.modrinth:dynamic-fps:${project.dynamicfps_version}-${project.minecraft_version}"
 }
 
 def fabricModInfoJson(ArrayList<CompatLayer> layers) {
@@ -123,8 +126,9 @@ class CompatLayer {
 }
 
 ext.layers = [
-	new CompatLayer(name: "Tweakeroo", dir: "TweakerooCompat", extra: [ "MalilibUtils" ], modid: "tweakeroo"),
-	new CompatLayer(name: "Litematica", dir: "LitematicaCompat", extra: [ "MalilibUtils" ], modid: "litematica")
+	new CompatLayer(name: "Tweakeroo", dir: "Tweakeroo", extra: [ "MalilibUtils" ], modid: "tweakeroo"),
+	new CompatLayer(name: "Litematica", dir: "Litematica", extra: [ "MalilibUtils" ], modid: "litematica"),
+	new CompatLayer(name: "DynamicFPS", dir: "DynamicFPS", extra: [], modid: "dynamic_fps")
 ]
 
 ext.layers.each { layer ->
